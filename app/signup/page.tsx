@@ -1,4 +1,9 @@
+"use client"
+
 import { DM_Serif_Display } from "next/font/google";
+import {useState} from "react";
+import axios from "axios";
+import {useRouter} from "next/navigation"
 
 const dmSerif = DM_Serif_Display({
   subsets: ["latin"],
@@ -6,6 +11,24 @@ const dmSerif = DM_Serif_Display({
 });
 
 export default function SignUpPage() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>)=>{
+    e.preventDefault();
+    setError("");
+
+    try {
+      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/user/signup`, {name, password, email});
+      router.push("/dashboard")
+    } catch (error:any) {
+      setError(error.response.data.error || "an error occured");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">
       <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
@@ -45,8 +68,11 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          <form className="mt-6 space-y-4">
+          <form className="mt-6 space-y-4"
+          onSubmit={handleSignup}
+          >
             <div className="space-y-1.5">
+              {error?<p className="text-center text-red-400">{error}</p>:""}
               <label
                 htmlFor="name"
                 className="text-xs font-medium text-gray-400"
@@ -60,6 +86,8 @@ export default function SignUpPage() {
                 autoComplete="name"
                 className="h-10 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#101117] px-3 text-sm text-white outline-none ring-0 transition placeholder:text-gray-500 focus:border-[#867afe] focus:outline-none"
                 placeholder="Alex Rivera"
+                value={name}
+                onChange={(e)=>{setName(e.target.value)}}
               />
             </div>
 
@@ -77,6 +105,8 @@ export default function SignUpPage() {
                 autoComplete="email"
                 className="h-10 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#101117] px-3 text-sm text-white outline-none ring-0 transition placeholder:text-gray-500 focus:border-[#867afe] focus:outline-none"
                 placeholder="you@company.com"
+                value={email}
+                onChange={(e)=>{setEmail(e.target.value)}}
               />
             </div>
 
@@ -94,6 +124,8 @@ export default function SignUpPage() {
                 autoComplete="new-password"
                 className="h-10 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#101117] px-3 text-sm text-white outline-none ring-0 transition placeholder:text-gray-500 focus:border-[#867afe] focus:outline-none"
                 placeholder="At least 8 characters"
+                value={password}
+                onChange={(e)=>{setPassword(e.target.value)}}
               />
             </div>
 
