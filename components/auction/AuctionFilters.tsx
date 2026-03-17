@@ -30,7 +30,7 @@ export default function AuctionFilters() {
                             <input
                                 type="number"
                                 placeholder="min"
-                                className="w-[70px] rounded-lg border border-white/10 bg-[#16171f]/50 px-2 py-1.5 text-[13px] text-white placeholder:text-gray-600 outline-none transition-all focus:border-[#867afe] focus:bg-[#16171f]"
+                                className="w-[100px] rounded-lg border border-white/10 bg-[#16171f]/50 px-2 py-1.5 text-[13px] text-white placeholder:text-gray-600 outline-none transition-all focus:border-[#867afe] focus:bg-[#16171f]"
                             />
                             
                             <span className="text-gray-500">—</span>
@@ -38,7 +38,7 @@ export default function AuctionFilters() {
                             <input
                                 type="number"
                                 placeholder="max"
-                                className="w-[70px] rounded-lg border border-white/10 bg-[#16171f]/50 px-2 py-1.5 text-[13px] text-white placeholder:text-gray-600 outline-none transition-all focus:border-[#867afe] focus:bg-[#16171f]"
+                                className="w-[100px] rounded-lg border border-white/10 bg-[#16171f]/50 px-2 py-1.5 text-[13px] text-white placeholder:text-gray-600 outline-none transition-all focus:border-[#867afe] focus:bg-[#16171f]"
                             />
                         </div>
                     </div>

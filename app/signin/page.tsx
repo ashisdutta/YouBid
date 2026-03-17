@@ -20,7 +20,7 @@ export default function SignInPage() {
     setError("");
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/user/signin`, {email, password});
+      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/user/signin`, {email, password}, {withCredentials:true});
       router.push("/dashboard")
     } catch (error:any) {
       setError(error.response.data.error || "an error occured");

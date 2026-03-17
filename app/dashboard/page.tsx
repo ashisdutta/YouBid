@@ -1,19 +1,48 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuctionStore } from "@/store/useAuctionStore";
 import { MOCK_AUCTIONS } from "@/store/mockData";
 
 import AuctionHeader from "@/components/auction/AuctionHeader";
 import AuctionFilters from "@/components/auction/AuctionFilters";
 import AuctionsTable from "@/components/auction/AuctionTable";
+import { symlink } from "fs";
+import axios from "axios";
+
+export interface Auction{
+    id: string;
+    title: string;
+    description: string;
+    photo: string[];
+    startPrice: number;
+    currentPrice: number;
+    startTime?: string | null;
+    endTime: string;
+    status: string;
+    sellerId: string;
+    winnerId?: string | null;
+    seller?:{
+        name: string
+    }
+}
 
 export default function DashboardPage() {
-    const { auctions, setAuctions } = useAuctionStore();
+    //const { auctions, setAuctions } = useAuctionStore();
+    const [auctions, setAuctions] = useState<Auction[]>([]);
+    //const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setAuctions(MOCK_AUCTIONS);
-    }, [setAuctions]);
+        const fetchAuctions = async () => {
+            try {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/active`, {withCredentials: true});
+                setAuctions(response.data);
+            } catch (error) {
+                console.error("error fetching auctions", error);
+            }
+        }
+        fetchAuctions();
+    }, []);
 
     return (
         <div className="min-h-screen bg-[#0a0a0b] text-white selection:bg-[#867afe]/30">

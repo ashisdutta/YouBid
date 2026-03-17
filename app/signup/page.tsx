@@ -22,7 +22,7 @@ export default function SignUpPage() {
     setError("");
 
     try {
-      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/user/signup`, {name, password, email});
+      await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/user/signup`, {name, password, email}, {withCredentials:true});
       router.push("/dashboard")
     } catch (error:any) {
       setError(error.response.data.error || "an error occured");

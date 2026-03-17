@@ -3,13 +3,14 @@
 
 import AuctionRow from "./AuctionRow";
 import { DM_Serif_Display } from "next/font/google";
+import { type Auction } from "@/app/dashboard/page";
 
 const dmSerif = DM_Serif_Display({
     subsets: ["latin"],
     weight: "400",
 });
 
-export default function AuctionsTable({ auctions }: any) {
+export default function AuctionsTable({ auctions }:{auctions : Auction[]}) {
     return (
         <div className="bg-transparent p-8 shadow-xl">
 
@@ -25,11 +26,11 @@ export default function AuctionsTable({ auctions }: any) {
 
             </div>
 
-            <div className="overflow-hidden rounded-2xl bg-transparent border border-white/10">
+            <div className="max-h-[500px] overflow-y-auto rounded-2xl bg-transparent border border-white/10 shadow-inner">
 
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse relative">
 
-                    <thead className="h-12 bg-[#867afe]">
+                    <thead className="sticky top-0 z-10 h-12 bg-[#867afe]">
                         <tr className="border-b border-white/10 text-xs text-black-500 uppercase">
                             <th className="w-[80px] px-8 py-5">photo</th>
                             <th className="py-5">title</th>
@@ -40,7 +41,7 @@ export default function AuctionsTable({ auctions }: any) {
                     </thead>
                     
                     <tbody className="divide-y divide-white/5">
-                        {auctions.map((auction: any) => (
+                        {auctions.map((auction) => (
                             <AuctionRow key={auction.id} auction={auction} />
                         ))}
                     </tbody>

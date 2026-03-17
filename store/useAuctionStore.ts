@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 
-// Define the shape of a single Auction item
 export interface Auction {
     id: string;
     title: string;
@@ -11,7 +10,7 @@ export interface Auction {
     size: 'small' | 'wide' | 'tall' | 'large';
 }
 
-// Define the Store's state and actions
+
 interface AuctionState {
     auctions: Auction[];
     // Sets the full list (used for the initial Hono REST API call)
