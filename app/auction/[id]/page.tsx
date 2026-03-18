@@ -3,76 +3,120 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { MOCK_ITEM, MOCK_BIDS} from "@/components/auction/detail/auctionTypes";
+import axios from "axios";
 import AuctionItemCard from "@/components/auction/detail/AuctionItemCard";
 import AuctionStats from "@/components/auction/detail/AuctionStats";
 import AuctionBidBox from "@/components/auction/detail/AuctionBidBox";
 import AuctionLiveFeed from "@/components/auction/detail/AuctionLiveFeed";
-import axios from "axios"
 import { type Auction } from "@/app/dashboard/page";
-import { timeStamp } from "console";
 
 export type Bid = {
   id: string;
   user: string;
   amount: number;
   timestamp: Date;
-  status: "leading" | "outbid"
-}
+  status: "leading" | "outbid";
+};
 
 export default function AuctionDetailPage() {
   const router = useRouter();
   const params = useParams();
   const auctionId = params.id as string;
+  
   const [bids, setBids] = useState<Bid[]>([]);
-  const [auction, setAuction] = useState<Auction | null>(null)
+  const [auction, setAuction] = useState<Auction | null>(null);
+  const [watchers, setWatchers] = useState(0); // for total no. of people suscribe to bid
 
-  // // Simulate incoming websocket bids
-  // useEffect(() => {
-  //   const users = ["whale_bidder", "crypto_monk", "anon_buyer", "silent_bid", "fast_fingers"];
-  //   const interval = setInterval(() => {
-  //     const latestBid = bids[0]?.amount ?? MOCK_ITEM.currentBid;
-  //     const newAmount = latestBid + Math.floor(Math.random() * 300 + 100);
-  //     const newBid: Bid = {
-  //       id: Math.random().toString(36).slice(2),
-  //       user: users[Math.floor(Math.random() * users.length)],
-  //       amount: newAmount,
-  //       timestamp: new Date(),
-  //       status: "leading",
-  //     };
-  //     setBids((prev) => [newBid, ...prev.map((b) => ({ ...b, status: "outbid" as const }))]);
-  //   }, 4000);
-  //   return () => clearInterval(interval);
-  // }, [bids]);
-
+  // ==========================================
+  // 1. INITIAL LOAD (Fetch item + past bids)
+  // ==========================================
   useEffect(() => {
     const fetchAuction = async () => {
-        try {
-            const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}`, 
-                { withCredentials: true }
-            );
-            
-            setAuction(response.data.auction);
+      try {
+        const response = await axios.get(
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}`, 
+          { withCredentials: true }
+        );
+        
+        setAuction(response.data.auction);
 
-            if (response.data.bids) {
-                const formattedBids: Bid[] = response.data.bids.map((bid: any, index: number) => ({
-                    id: bid.id,
-                    user: bid.bidder.name,
-                    amount: bid.amount,
-                    timestamp: bid.createdAt,
-                    status: index === 0 ? "leading" : "outbid"
-                }));
-                
-                setBids(formattedBids);
-            }
-        } catch (error) {
-            console.error("error fetching auctions", error);
+        if (response.data.bids) {
+          const formattedBids: Bid[] = response.data.bids.map((bid: any, index: number) => ({
+            id: bid.id,
+            user: bid.bidder.name,
+            amount: bid.amount,
+            timestamp: bid.createdAt,
+            status: index === 0 ? "leading" : "outbid"
+          }));
+          
+          setBids(formattedBids);
         }
-    }
-    fetchAuction();
-}, []);
+      } catch (error) {
+        console.error("Error fetching auction", error);
+      }
+    };
+    if (auctionId) fetchAuction();
+  }, [auctionId]);
 
+  // ==========================================
+  // 2. LIVE UPDATES (Hono WebSocket Listener)
+  // ==========================================
+  useEffect(() => {
+    if (!auctionId) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      // Optional: Tell the backend which room to join if you implemented rooms
+      ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+    };
+
+    ws.onmessage = (event) => {
+      console.log("📨 Raw WS message:", event.data);
+      const data = JSON.parse(event.data);
+      console.log("📨 Parsed data:", data);
+
+      // Listen for the Redis broadcast from your backend!
+      if (data.newPrice) {
+        const incomingBid: Bid = {
+          id: Math.random().toString(36).slice(2), 
+          user: data.bidderId, 
+          amount: data.newPrice,
+          timestamp: new Date(data.timestamp),
+          status: "leading",
+        };
+
+        setBids((prev) => [incomingBid, ...prev.map((b) => ({ ...b, status: "outbid" as const }))]);
+        setAuction((prev) => prev ? { ...prev, currentPrice: data.newPrice } : null);
+      }
+      if (data.type === 'WATCHERS_UPDATE') {
+        setWatchers(data.count);
+      }
+    };
+
+    return () => ws.close(); // Clean up on dismount
+  }, [auctionId]);
+
+  // ==========================================
+  // 3. PLACE A BID (Axios POST)
+  // ==========================================
+  const handleNewBid = async (amount: number) => {
+    try {
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}/bid`, 
+        { amount }, 
+        { withCredentials: true }
+      );
+      // We do not update state here! The WebSocket will catch the success and update the UI.
+    } catch (error: any) {
+      // Throw the error so your <AuctionBidBox /> can catch it and show the red error message
+      const errorMessage = error.response?.data?.error || "Bid failed. Please try again.";
+      throw new Error(errorMessage);
+    }
+  };
+
+  // Loading Guard
   if (!auction) {
     return (
       <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center">
@@ -80,18 +124,9 @@ export default function AuctionDetailPage() {
       </div>
     );
   }
-  const currentBid = bids[0]?.amount ?? MOCK_ITEM.currentBid;
 
-  const handleNewBid = (amount: number) => {
-    const newBid: Bid = {
-      id: Math.random().toString(36).slice(2),
-      user: "you",
-      amount,
-      timestamp: new Date(),
-      status: "leading",
-    };
-    setBids((prev) => [newBid, ...prev.map((b) => ({ ...b, status: "outbid" as const }))]);
-  };
+  // Use the real price fallback
+  const currentBid = bids[0]?.amount ?? auction.currentPrice;
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">
@@ -119,9 +154,9 @@ export default function AuctionDetailPage() {
           {/* Left column */}
           <div className="flex flex-col gap-6">
             <AuctionItemCard item={auction} />
-            <AuctionStats item={MOCK_ITEM} />
+            <AuctionStats item={auction} totalBids={bids.length} />
             <AuctionBidBox
-              item={MOCK_ITEM}
+              item={auction}
               currentBid={currentBid}
               onNewBid={handleNewBid}
             />
@@ -130,7 +165,7 @@ export default function AuctionDetailPage() {
           {/* Right column */}
           <AuctionLiveFeed
             bids={bids}
-            totalWatchers={MOCK_ITEM.totalBidders}
+            totalWatchers={watchers} 
           />
 
         </div>

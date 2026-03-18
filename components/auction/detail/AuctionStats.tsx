@@ -5,12 +5,12 @@ import { Clock, Users, TrendingUp } from "lucide-react";
 type Props = {
   item: {
     startPrice: number;
-    totalBidders: number;
-    startTime: string;
+    startTime?: string | Date | null;
   };
+  totalBids: number;
 };
 
-export default function AuctionStats({ item }: Props) {
+export default function AuctionStats({ item, totalBids }: Props) {
   const stats = [
     {
       icon: <TrendingUp size={14} />,
@@ -19,18 +19,20 @@ export default function AuctionStats({ item }: Props) {
     },
     {
       icon: <Users size={14} />,
-      label: "Total Bidders",
-      value: String(item.totalBidders),
+      label: "Total Bids",
+      value: String(totalBids),
     },
     {
       icon: <Clock size={14} />,
       label: "Started",
-      value: new Date(item.startTime).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      value: item.startTime 
+        ? new Date(item.startTime).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Not started",
     },
   ];
 

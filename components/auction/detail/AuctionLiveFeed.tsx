@@ -7,7 +7,7 @@ type Bid = {
   id: string;
   user: string;
   amount: number;
-  timestamp: Date;
+  timestamp: Date | string;
   status: "leading" | "outbid";
 };
 
@@ -16,8 +16,8 @@ type Props = {
   totalWatchers: number;
 };
 
-function timeAgo(date: Date): string {
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+function timeAgo(date: Date | string): string {
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   return `${Math.floor(diff / 3600)}h ago`;

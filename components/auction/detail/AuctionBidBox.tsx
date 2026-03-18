@@ -3,16 +3,22 @@
 import { useState, useEffect } from "react";
 import { Zap } from "lucide-react";
 
+// 1. Updated Props to match Prisma and expect a real async Promise from page.tsx
 type Props = {
   item: {
-    endTime: string;
+    endTime?: string | Date | null;
   };
   currentBid: number;
-  onNewBid: (amount: number) => void;
+  onNewBid: (amount: number) => Promise<void>; 
 };
 
-function formatCountdown(endTime: string): string {
+// 2. Made the countdown safe for missing dates
+function formatCountdown(endTime?: string | Date | null): string {
+  if (!endTime) return "--:--:--";
+  
   const diff = Math.max(0, new Date(endTime).getTime() - Date.now());
+  if (diff === 0) return "00:00:00"; // Auction ended!
+
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   const s = Math.floor((diff % 60000) / 1000);
@@ -24,7 +30,7 @@ export default function AuctionBidBox({ item, currentBid, onNewBid }: Props) {
   const [countdown, setCountdown] = useState(formatCountdown(item.endTime));
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [bidError, setBidError] = useState("");
-  const [bidSuccess, setBidSuccess] = useState(false);
+  const [bidSuccess, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -32,24 +38,42 @@ export default function AuctionBidBox({ item, currentBid, onNewBid }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!item.endTime) return;
     const interval = setInterval(() => setCountdown(formatCountdown(item.endTime)), 1000);
     return () => clearInterval(interval);
   }, [item.endTime]);
 
   const minBid = currentBid + 1;
+  const isEnded = countdown === "00:00:00";
 
   const handlePlaceBid = async () => {
     setBidError("");
+    setSuccess(false);
+    
     const amount = parseFloat(bidAmount);
-    if (!bidAmount || isNaN(amount)) { setBidError("Enter a valid amount"); return; }
-    if (amount <= currentBid) { setBidError(`Bid must be higher than $${currentBid.toLocaleString()}`); return; }
+    if (!bidAmount || isNaN(amount)) { 
+      setBidError("Enter a valid amount"); 
+      return; 
+    }
+    if (amount <= currentBid) { 
+      setBidError(`Bid must be higher than $${currentBid.toLocaleString()}`); 
+      return; 
+    }
+
     setIsPlacingBid(true);
-    await new Promise((r) => setTimeout(r, 800));
-    onNewBid(amount);
-    setBidAmount("");
-    setBidSuccess(true);
-    setIsPlacingBid(false);
-    setTimeout(() => setBidSuccess(false), 3000);
+
+    try {
+      // 3. We await the REAL network request to your Hono backend!
+      await onNewBid(amount); 
+      setBidAmount("");
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error: any) {
+      // If the backend rejects the bid (e.g., "Bid too low!"), we catch it and show it in the UI!
+      setBidError(error.message || "Failed to place bid. Try again.");
+    } finally {
+      setIsPlacingBid(false);
+    }
   };
 
   return (
@@ -62,8 +86,10 @@ export default function AuctionBidBox({ item, currentBid, onNewBid }: Props) {
           <div className="text-4xl font-extrabold text-[#867afe]">${currentBid.toLocaleString()}</div>
         </div>
         <div className="text-right">
-          <div className="mb-1 text-xs text-gray-500">Ends in</div>
-          <div className="font-mono text-2xl font-bold tabular-nums text-white">{mounted ? countdown : "--:--:--"}</div>
+          <div className="mb-1 text-xs text-gray-500">{isEnded ? "Auction Ended" : "Ends in"}</div>
+          <div className="font-mono text-2xl font-bold tabular-nums text-white">
+            {mounted ? countdown : "--:--:--"}
+          </div>
         </div>
       </div>
 
@@ -89,16 +115,17 @@ export default function AuctionBidBox({ item, currentBid, onNewBid }: Props) {
             onChange={(e) => { setBidAmount(e.target.value); setBidError(""); }}
             placeholder={String(minBid)}
             min={minBid}
-            className="w-full rounded-xl border border-white/10 bg-[#16171f]/80 py-3.5 pl-8 pr-4 text-base text-white outline-none placeholder:text-gray-600 focus:border-[#867afe]"
+            disabled={isEnded || isPlacingBid}
+            className="w-full rounded-xl border border-white/10 bg-[#16171f]/80 py-3.5 pl-8 pr-4 text-base text-white outline-none placeholder:text-gray-600 focus:border-[#867afe] disabled:opacity-50"
           />
         </div>
         <button
           onClick={handlePlaceBid}
-          disabled={isPlacingBid}
+          disabled={isPlacingBid || isEnded}
           className="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-xl border-none bg-[#867afe] px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-[#9c8fff] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Zap size={15} />
-          {isPlacingBid ? "Placing..." : "Place Bid"}
+          {isPlacingBid ? "Processing..." : isEnded ? "Ended" : "Place Bid"}
         </button>
       </div>
 
@@ -107,8 +134,9 @@ export default function AuctionBidBox({ item, currentBid, onNewBid }: Props) {
         {[100, 500, 1000, 5000].map((inc) => (
           <button
             key={inc}
+            disabled={isEnded || isPlacingBid}
             onClick={() => setBidAmount(String(currentBid + inc))}
-            className="cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.02] py-2 text-xs text-gray-400 transition-all hover:border-[#867afe]/40 hover:text-[#867afe]"
+            className="cursor-pointer rounded-lg border border-white/[0.08] bg-white/[0.02] py-2 text-xs text-gray-400 transition-all hover:border-[#867afe]/40 hover:text-[#867afe] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             +${inc >= 1000 ? `${inc / 1000}k` : inc}
           </button>

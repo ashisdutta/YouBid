@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuctionStore } from "@/store/useAuctionStore";
-import { MOCK_AUCTIONS } from "@/store/mockData";
 
 import AuctionHeader from "@/components/auction/AuctionHeader";
 import AuctionFilters from "@/components/auction/AuctionFilters";
