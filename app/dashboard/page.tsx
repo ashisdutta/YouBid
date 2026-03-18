@@ -44,6 +44,24 @@ export default function DashboardPage() {
         fetchAuctions();
     }, []);
 
+    useEffect(() => {
+        const ws = new WebSocket('ws://localhost:3000/ws');
+
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'NEW_AUCTION') {
+                // Push the new item from the WS into the array we got from the DB
+                setAuctions((prev) => [data.payload, ...prev]);
+            }
+        };
+
+        return () => ws.close();
+    }, []); // Empty array = connect once, close on unmount
+
     return (
         <div className="min-h-screen bg-[#0a0a0b] text-white selection:bg-[#867afe]/30">
         <div className="relative isolate min-h-screen overflow-hidden font-sans">

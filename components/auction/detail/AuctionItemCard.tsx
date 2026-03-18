@@ -1,11 +1,7 @@
 "use client";
-
+import { type Auction } from "@/app/dashboard/page";
 type Props = {
-  item: {
-    title: string;
-    description: string;
-    image: string;
-  };
+  item: Auction;
 };
 
 export default function AuctionItemCard({ item }: Props) {
@@ -13,7 +9,7 @@ export default function AuctionItemCard({ item }: Props) {
     <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0f1012]">
       <div className="flex h-80 items-center justify-center border-b border-white/[0.06] bg-gradient-to-br from-[#16171f] to-[#1a1b24]">
         <img
-          src={item.image}
+          src={item.photo[0]}
           alt={item.title}
           className="h-48 w-48 rounded-xl object-cover"
         />
