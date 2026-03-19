@@ -1,6 +1,188 @@
+// "use client";
+
+// import { useState, useEffect } from "react";
+// import { useRouter, useParams } from "next/navigation";
+// import { ArrowLeft } from "lucide-react";
+// import axios from "axios";
+// import AuctionItemCard from "@/components/auction/detail/AuctionItemCard";
+// import AuctionStats from "@/components/auction/detail/AuctionStats";
+// import AuctionBidBox from "@/components/auction/detail/AuctionBidBox";
+// import AuctionLiveFeed from "@/components/auction/detail/AuctionLiveFeed";
+// import { type Auction } from "@/app/dashboard/page";
+
+// export type Bid = {
+//   id: string;
+//   user: string;
+//   amount: number;
+//   timestamp: Date;
+//   status: "leading" | "outbid";
+// };
+
+// export default function AuctionDetailPage() {
+//   const router = useRouter();
+//   const params = useParams();
+//   const auctionId = params.id as string;
+  
+//   const [bids, setBids] = useState<Bid[]>([]);
+//   const [auction, setAuction] = useState<Auction | null>(null);
+//   const [watchers, setWatchers] = useState(0); // for total no. of people suscribe to bid
+
+//   // ==========================================
+//   // 1. INITIAL LOAD (Fetch item + past bids)
+//   // ==========================================
+//   useEffect(() => {
+//     const fetchAuction = async () => {
+//       try {
+//         const response = await axios.get(
+//           `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}`, 
+//           { withCredentials: true }
+//         );
+        
+//         setAuction(response.data.auction);
+
+//         if (response.data.bids) {
+//           const formattedBids: Bid[] = response.data.bids.map((bid: any, index: number) => ({
+//             id: bid.id,
+//             user: bid.bidder.name,
+//             amount: bid.amount,
+//             timestamp: bid.createdAt,
+//             status: index === 0 ? "leading" : "outbid"
+//           }));
+          
+//           setBids(formattedBids);
+//         }
+//       } catch (error) {
+//         console.error("Error fetching auction", error);
+//       }
+//     };
+//     if (auctionId) fetchAuction();
+//   }, [auctionId]);
+
+//   // ==========================================
+//   // 2. LIVE UPDATES (Hono WebSocket Listener)
+//   // ==========================================
+//   useEffect(() => {
+//     if (!auctionId) return;
+
+//     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
+//     const ws = new WebSocket(wsUrl);
+
+//     ws.onopen = () => {
+//       // Optional: Tell the backend which room to join if you implemented rooms
+//       ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+//     };
+
+//     ws.onmessage = (event) => {
+//       console.log("📨 Raw WS message:", event.data);
+//       const data = JSON.parse(event.data);
+//       console.log("📨 Parsed data:", data);
+
+//       // Listen for the Redis broadcast from your backend!
+//       if (data.newPrice) {
+//         const incomingBid: Bid = {
+//           id: Math.random().toString(36).slice(2), 
+//           user: data.bidderId, 
+//           amount: data.newPrice,
+//           timestamp: new Date(data.timestamp),
+//           status: "leading",
+//         };
+
+//         setBids((prev) => [incomingBid, ...prev.map((b) => ({ ...b, status: "outbid" as const }))]);
+//         setAuction((prev) => prev ? { ...prev, currentPrice: data.newPrice } : null);
+//       }
+//       if (data.type === 'WATCHERS_UPDATE') {
+//         setWatchers(data.count);
+//       }
+//     };
+
+//     return () => ws.close(); // Clean up on dismount
+//   }, [auctionId]);
+
+//   // ==========================================
+//   // 3. PLACE A BID (Axios POST)
+//   // ==========================================
+//   const handleNewBid = async (amount: number) => {
+//     try {
+//       await axios.post(
+//         `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}/bid`, 
+//         { amount }, 
+//         { withCredentials: true }
+//       );
+//       // We do not update state here! The WebSocket will catch the success and update the UI.
+//     } catch (error: any) {
+//       // Throw the error so your <AuctionBidBox /> can catch it and show the red error message
+//       const errorMessage = error.response?.data?.error || "Bid failed. Please try again.";
+//       throw new Error(errorMessage);
+//     }
+//   };
+
+//   // Loading Guard
+//   if (!auction) {
+//     return (
+//       <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center">
+//         Loading Vault...
+//       </div>
+//     );
+//   }
+
+//   // Use the real price fallback
+//   const currentBid = bids[0]?.amount ?? auction.currentPrice;
+
+//   return (
+//     <div className="min-h-screen bg-[#0a0a0b] text-white">
+
+//       {/* Ambient blobs */}
+//       <div className="pointer-events-none fixed inset-0 z-0">
+//         <div className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-[rgba(134,122,254,0.12)] blur-[80px]" />
+//         <div className="absolute top-[30%] -right-16 h-80 w-80 rounded-full bg-[rgba(134,122,254,0.10)] blur-[80px]" />
+//       </div>
+
+//       <div className="relative z-10 mx-auto max-w-[1200px] px-6 py-8">
+
+//         {/* Back button */}
+//         <button
+//           onClick={() => router.back()}
+//           className="mb-8 flex items-center gap-2 border-none bg-transparent p-0 text-sm text-gray-400 transition-colors hover:text-white cursor-pointer"
+//         >
+//           <ArrowLeft size={16} />
+//           Back to auctions
+//         </button>
+
+//         {/* Main 2-col grid */}
+//         <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 420px" }}>
+
+//           {/* Left column */}
+//           <div className="flex flex-col gap-6">
+//             <AuctionItemCard item={auction} />
+//             <AuctionStats item={auction} totalBids={bids.length} />
+//             <AuctionBidBox
+//               item={auction}
+//               currentBid={currentBid}
+//               onNewBid={handleNewBid}
+//             />
+//           </div>
+
+//           {/* Right column */}
+//           <AuctionLiveFeed
+//             bids={bids}
+//             totalWatchers={watchers} 
+//           />
+
+//         </div>
+//       </div>
+
+//       <style>{`
+//         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+//         ::-webkit-scrollbar { width: 4px; }
+//         ::-webkit-scrollbar-track { background: transparent; }
+//         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+//       `}</style>
+//     </div>
+//   );
+// }
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import axios from "axios";
@@ -25,10 +207,10 @@ export default function AuctionDetailPage() {
   
   const [bids, setBids] = useState<Bid[]>([]);
   const [auction, setAuction] = useState<Auction | null>(null);
-  const [watchers, setWatchers] = useState(0); // for total no. of people suscribe to bid
+  const [watchers, setWatchers] = useState(0);
 
   // ==========================================
-  // 1. INITIAL LOAD (Fetch item + past bids)
+  // 1. INITIAL LOAD
   // ==========================================
   useEffect(() => {
     const fetchAuction = async () => {
@@ -48,7 +230,6 @@ export default function AuctionDetailPage() {
             timestamp: bid.createdAt,
             status: index === 0 ? "leading" : "outbid"
           }));
-          
           setBids(formattedBids);
         }
       } catch (error) {
@@ -59,64 +240,106 @@ export default function AuctionDetailPage() {
   }, [auctionId]);
 
   // ==========================================
-  // 2. LIVE UPDATES (Hono WebSocket Listener)
+  // 2. LIVE UPDATES with auto-reconnect
   // ==========================================
   useEffect(() => {
     if (!auctionId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
-    const ws = new WebSocket(wsUrl);
+    let ws: WebSocket;
+    let reconnectTimer: NodeJS.Timeout;
+    let isMounted = true;
 
-    ws.onopen = () => {
-      // Optional: Tell the backend which room to join if you implemented rooms
-      ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+    const connect = () => {
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        if (!isMounted) return ws.close();
+        ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+      };
+
+      ws.onmessage = (event) => {
+        if (!isMounted) return;
+        const data = JSON.parse(event.data);
+
+        if (data.newPrice) {
+          const incomingBid: Bid = {
+            id: Math.random().toString(36).slice(2), 
+            user: data.bidderId, 
+            amount: data.newPrice,
+            timestamp: new Date(data.timestamp),
+            status: "leading",
+          };
+          // Remove optimistic bid ("you") if WS confirms the same amount
+          setBids((prev) => [
+            incomingBid,
+            ...prev
+              .filter((b) => !(b.user === "you" && b.amount === data.newPrice)) // ← remove optimistic
+              .map((b) => ({ ...b, status: "outbid" as const }))
+          ]);
+          setAuction((prev) => prev ? { ...prev, currentPrice: data.newPrice } : null);
+        }
+
+        if (data.type === 'WATCHERS_UPDATE') {
+          setWatchers(data.count);
+        }
+      };
+
+      // Auto-reconnect on drop
+      ws.onclose = () => {
+        if (!isMounted) return;
+        console.log("🔌 WS dropped, reconnecting in 3s...");
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => ws.close(); // triggers onclose → reconnect
     };
 
-    ws.onmessage = (event) => {
-      console.log("📨 Raw WS message:", event.data);
-      const data = JSON.parse(event.data);
-      console.log("📨 Parsed data:", data);
+    connect();
 
-      // Listen for the Redis broadcast from your backend!
-      if (data.newPrice) {
-        const incomingBid: Bid = {
-          id: Math.random().toString(36).slice(2), 
-          user: data.bidderId, 
-          amount: data.newPrice,
-          timestamp: new Date(data.timestamp),
-          status: "leading",
-        };
-
-        setBids((prev) => [incomingBid, ...prev.map((b) => ({ ...b, status: "outbid" as const }))]);
-        setAuction((prev) => prev ? { ...prev, currentPrice: data.newPrice } : null);
-      }
-      if (data.type === 'WATCHERS_UPDATE') {
-        setWatchers(data.count);
-      }
+    return () => {
+      isMounted = false;
+      clearTimeout(reconnectTimer);
+      ws?.close();
     };
-
-    return () => ws.close(); // Clean up on dismount
   }, [auctionId]);
 
   // ==========================================
-  // 3. PLACE A BID (Axios POST)
+  // 3. PLACE A BID with optimistic UI
   // ==========================================
   const handleNewBid = async (amount: number) => {
+    // Show bid instantly before server confirms
+    const optimisticId = Math.random().toString(36).slice(2);
+    const optimisticBid: Bid = {
+      id: optimisticId,
+      user: "you",
+      amount,
+      timestamp: new Date(),
+      status: "leading",
+    };
+
+    setBids((prev) => [
+      optimisticBid,
+      ...prev.map((b) => ({ ...b, status: "outbid" as const }))
+    ]);
+    setAuction((prev) => prev ? { ...prev, currentPrice: amount } : null);
+
     try {
       await axios.post(
         `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/auction/${auctionId}/bid`, 
         { amount }, 
         { withCredentials: true }
       );
-      // We do not update state here! The WebSocket will catch the success and update the UI.
+      // WS will replace the optimistic bid with real data
     } catch (error: any) {
-      // Throw the error so your <AuctionBidBox /> can catch it and show the red error message
+      // Roll back optimistic update on failure
+      setBids((prev) => prev.filter((b) => b.id !== optimisticId));
+      setAuction((prev) => prev ? { ...prev, currentPrice: bids[0]?.amount ?? prev.currentPrice } : null);
       const errorMessage = error.response?.data?.error || "Bid failed. Please try again.";
       throw new Error(errorMessage);
     }
   };
 
-  // Loading Guard
   if (!auction) {
     return (
       <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center">
@@ -125,21 +348,16 @@ export default function AuctionDetailPage() {
     );
   }
 
-  // Use the real price fallback
   const currentBid = bids[0]?.amount ?? auction.currentPrice;
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white">
-
-      {/* Ambient blobs */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-[rgba(134,122,254,0.12)] blur-[80px]" />
         <div className="absolute top-[30%] -right-16 h-80 w-80 rounded-full bg-[rgba(134,122,254,0.10)] blur-[80px]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-[1200px] px-6 py-8">
-
-        {/* Back button */}
         <button
           onClick={() => router.back()}
           className="mb-8 flex items-center gap-2 border-none bg-transparent p-0 text-sm text-gray-400 transition-colors hover:text-white cursor-pointer"
@@ -148,10 +366,7 @@ export default function AuctionDetailPage() {
           Back to auctions
         </button>
 
-        {/* Main 2-col grid */}
         <div className="grid gap-8" style={{ gridTemplateColumns: "1fr 420px" }}>
-
-          {/* Left column */}
           <div className="flex flex-col gap-6">
             <AuctionItemCard item={auction} />
             <AuctionStats item={auction} totalBids={bids.length} />
@@ -162,12 +377,10 @@ export default function AuctionDetailPage() {
             />
           </div>
 
-          {/* Right column */}
           <AuctionLiveFeed
             bids={bids}
             totalWatchers={watchers} 
           />
-
         </div>
       </div>
 

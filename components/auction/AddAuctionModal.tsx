@@ -48,7 +48,7 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
     const newFiles = Array.from(files);
     setSelectedFiles(prev => [...prev, ...newFiles]);
 
-    // Create temporary browser URLs for UI previews (More efficient than Base64)
+    // Create temporary browser URLs for UI previews
     const newPreviews = newFiles.map(file => URL.createObjectURL(file));
     setPreviews(prev => [...prev, ...newPreviews]);
   };
@@ -80,7 +80,7 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
         
         for (const file of selectedFiles) {
           const uploadData = new FormData();
-          uploadData.append("file", file); // Sending raw binary file
+          uploadData.append("file", file); 
           uploadData.append("upload_preset", UPLOAD_PRESET);
 
           const res = await fetch(
@@ -89,13 +89,20 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
           );
 
           if (!res.ok) throw new Error("Cloudinary upload failed");
-          console.log(res)
+          
           const data = await res.json();
           uploadedImageUrls.push(data.secure_url);
         }
       }
 
-      // STEP 2: SAVE TO DATABASE (Only runs if Step 1 succeeds)
+      // STEP 2: FORMAT DATA FOR ZOD
+      // Zod's .datetime() requires a strict ISO string (e.g., "2026-03-19T10:30:00.000Z")
+      let formattedStartTime = undefined;
+      if (formData.startTime) {
+        formattedStartTime = new Date(formData.startTime).toISOString();
+      }
+
+      // STEP 3: SAVE TO DATABASE
       setUploadStatus("Saving auction to database...");
       
       const response = await axios.post(
@@ -103,19 +110,26 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
         {
           title: formData.title,
           description: formData.description,
-          photo: uploadedImageUrls, // Array of strings from Cloudinary
-          startPrice: parseFloat(formData.startPrice),
+          photo: uploadedImageUrls,
+          // 🔥 FIX: parseInt ensures Zod's .int() validation passes
+          startPrice: parseInt(formData.startPrice), 
           durationHours: parseInt(formData.durationHours),
-          startTime: formData.startTime || undefined,
+          startTime: formattedStartTime, 
         },
         { withCredentials: true }
       );
+
+      // 🔥 FIX: Catch the "Silent Failure" where backend sends 200 but includes an error
+      if (response.data && response.data.error) {
+        throw new Error(response.data.error);
+      }
 
       if (response.status === 201 || response.status === 200) {
         onSuccess?.();
         handleClose();
       }
     } catch (err: any) {
+      console.error("Submission Error:", err);
       setError(err.response?.data?.error || err.message || "Failed to create auction");
     } finally {
       setIsSubmitting(false);
@@ -126,7 +140,7 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
   const handleClose = () => {
     setFormData({ title: "", description: "", startPrice: "", durationHours: "24", startTime: "" });
     setSelectedFiles([]);
-    previews.forEach(url => URL.revokeObjectURL(url)); // Crucial memory cleanup
+    previews.forEach(url => URL.revokeObjectURL(url)); 
     setPreviews([]);
     setError("");
     onClose();
@@ -235,7 +249,6 @@ export default function AddAuctionModal({ isOpen, onClose, onSuccess }: AddAucti
             </div>
           </div>
 
-          {/* Start Time (Restored) */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-300">Start Time (Optional)</label>
             <input

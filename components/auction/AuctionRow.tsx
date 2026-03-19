@@ -1,5 +1,5 @@
 "use client";
-import { Clock, Bookmark } from "lucide-react";
+import { Clock, Bookmark, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { type Auction } from "@/app/dashboard/page"; 
@@ -58,7 +58,7 @@ export default function AuctionRow({ auction }: Props) {
             <td className="px-8 py-2 align-middle">
                 <div className="h-8 w-8 overflow-hidden rounded-full border border-white/10 shrink-0">
                     <img
-                        src={auction.photo && auction.photo.length > 0 ? auction.photo[0] : "https://via.placeholder.com/150"}
+                        src={auction.photo && auction.photo.length > 0 ? auction.photo[0] : "/auction-icon.jpg"}
                         alt={auction.title}
                         className="h-full w-full object-cover transition-all duration-300"
                         style={{
