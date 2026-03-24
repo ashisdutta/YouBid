@@ -53,12 +53,12 @@ export default function Home() {
                 >
                   Log in
                 </a>
-                <a
+                {/* <a
                   href="/signup"
                   className={`${dmSerif.className} inline-flex items-center justify-center rounded-lg bg-[#867afe] px-4 py-2 text-[0.95rem] font-normal text-white shadow-md shadow-[0_0_25px_rgba(134,122,254,0.55)] transition hover:bg-[#a193ff]`}
                 >
                   Get started
-                </a>
+                </a> */}
               </div>
             </div>
           </header>
@@ -95,7 +95,7 @@ export default function Home() {
                       onClick={() => setIsOtpOpen(true)}
                       className={`${dmSerif.className} inline-flex items-center justify-center rounded-lg bg-[#867afe] px-8 py-3 text-[1.1rem] font-normal text-white shadow-lg shadow-[0_0_25px_rgba(134,122,254,0.4)] transition hover:bg-[#a193ff]`}
                     >
-                      Lets bid
+                      Get Started
                     </button>
                     
                     <a
@@ -109,7 +109,7 @@ export default function Home() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
+                {/* <p className="text-xs font-semibold uppercase tracking-[0.25em] text-gray-400">
                   Powering auctions for teams at
                 </p>
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm text-gray-400">
@@ -119,7 +119,7 @@ export default function Home() {
                   <span className="font-medium text-gray-400">
                     Northstar Auctions
                   </span>
-                </div>
+                </div> */}
               </div>
             </section>
 
