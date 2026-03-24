@@ -6,7 +6,6 @@ import axios from "axios";
 import AuctionHeader from "@/components/auction/AuctionHeader";
 import AuctionFilters from "@/components/auction/AuctionFilters";
 import AuctionsTable from "@/components/auction/AuctionTable";
-// 1. Import the Modal here!
 import AddAuctionModal from "@/components/auction/AddAuctionModal";
 
 export interface Auction {
@@ -52,15 +51,11 @@ export default function DashboardPage() {
 
     // WebSocket
     useEffect(() => {
-        // 1. Initialize outside the inner functions
         let ws: WebSocket | null = null;
         let isMounted = true;
 
         const connect = () => {
             const wsUrl = getWebSocketUrl();
-            console.log("🚀 Connection Target:", wsUrl);
-            
-            // 2. Assign to the outer variable (NO 'const' here!)
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
@@ -78,8 +73,6 @@ export default function DashboardPage() {
                     setAuctions((prev) => [data.payload, ...prev]);
                 }
             };
-            
-            // Optional: Add auto-reconnect logic here if you want it
             ws.onclose = () => {
                 console.log("🔌 Dashboard WS closed");
             };
@@ -89,7 +82,6 @@ export default function DashboardPage() {
 
         return () => {
             isMounted = false;
-            // 3. Safe cleanup using the outer variable
             if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
                 ws.close();
             }
@@ -106,8 +98,6 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-16 pt-6 sm:px-8 lg:px-10">
-                    
-                    {/* 4. We pass a function to the Header to let it open the Modal */}
                     <AuctionHeader onOpenModal={() => setIsModalOpen(true)} />
 
                     <main className="mt-12 flex flex-col">
@@ -120,8 +110,6 @@ export default function DashboardPage() {
                     </main>
                 </div>
             </div>
-
-            {/* 5. The Modal lives here now! When it succeeds, it fetches the fresh data. */}
             <AddAuctionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

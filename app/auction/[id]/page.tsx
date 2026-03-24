@@ -56,22 +56,16 @@ export default function AuctionDetailPage() {
 
   useEffect(() => {
     if (!auctionId) return;
-
-    // 1. Initialize with null so TypeScript is happy
     let ws: WebSocket | null = null;
     let reconnectTimer: NodeJS.Timeout;
     let isMounted = true;
 
     const connect = () => {
-      // 2. Use your new helper file logic
       const wsUrl = getWebSocketUrl();
-      
-      // 3. Assign to the outer 'ws' variable (No 'const' here!)
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         if (!isMounted) return ws?.close();
-        // Check if ws exists before sending
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
         }
@@ -118,7 +112,6 @@ export default function AuctionDetailPage() {
     return () => {
       isMounted = false;
       clearTimeout(reconnectTimer);
-      // 4. Safely close if it exists
       if (ws) {
         ws.close();
       }
@@ -126,7 +119,6 @@ export default function AuctionDetailPage() {
   }, [auctionId]);
 
   const handleNewBid = async (amount: number) => {
-    // Show bid instantly before server confirms
     const optimisticId = Math.random().toString(36).slice(2);
     const optimisticBid: Bid = {
       id: optimisticId,
@@ -148,9 +140,7 @@ export default function AuctionDetailPage() {
         { amount }, 
         { withCredentials: true }
       );
-      // WS will replace the optimistic bid with real data
     } catch (error: any) {
-      // Roll back optimistic update on failure
       setBids((prev) => prev.filter((b) => b.id !== optimisticId));
       setAuction((prev) => prev ? { ...prev, currentPrice: bids[0]?.amount ?? prev.currentPrice } : null);
       const errorMessage = error.response?.data?.error || "Bid failed. Please try again.";
