@@ -57,16 +57,24 @@ export default function AuctionDetailPage() {
   useEffect(() => {
     if (!auctionId) return;
 
-    let ws: WebSocket;
+    // 1. Initialize with null so TypeScript is happy
+    let ws: WebSocket | null = null;
     let reconnectTimer: NodeJS.Timeout;
     let isMounted = true;
 
     const connect = () => {
+      // 2. Use your new helper file logic
       const wsUrl = getWebSocketUrl();
+      
+      // 3. Assign to the outer 'ws' variable (No 'const' here!)
       ws = new WebSocket(wsUrl);
+
       ws.onopen = () => {
-        if (!isMounted) return ws.close();
-        ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+        if (!isMounted) return ws?.close();
+        // Check if ws exists before sending
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
+        }
       };
 
       ws.onmessage = (event) => {
@@ -81,11 +89,11 @@ export default function AuctionDetailPage() {
             timestamp: new Date(data.timestamp),
             status: "leading",
           };
-          // Remove optimistic bid ("you") if WS confirms the same amount
+          
           setBids((prev) => [
             incomingBid,
             ...prev
-              .filter((b) => !(b.user === "you" && b.amount === data.newPrice)) // ← remove optimistic
+              .filter((b) => !(b.user === "you" && b.amount === data.newPrice))
               .map((b) => ({ ...b, status: "outbid" as const }))
           ]);
           setAuction((prev) => prev ? { ...prev, currentPrice: data.newPrice } : null);
@@ -96,14 +104,13 @@ export default function AuctionDetailPage() {
         }
       };
 
-      // Auto-reconnect on drop
       ws.onclose = () => {
         if (!isMounted) return;
         console.log("🔌 WS dropped, reconnecting in 3s...");
         reconnectTimer = setTimeout(connect, 3000);
       };
 
-      ws.onerror = () => ws.close(); // triggers onclose → reconnect
+      ws.onerror = () => ws?.close(); 
     };
 
     connect();
@@ -111,7 +118,10 @@ export default function AuctionDetailPage() {
     return () => {
       isMounted = false;
       clearTimeout(reconnectTimer);
-      ws?.close();
+      // 4. Safely close if it exists
+      if (ws) {
+        ws.close();
+      }
     };
   }, [auctionId]);
 

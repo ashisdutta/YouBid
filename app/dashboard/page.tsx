@@ -52,25 +52,45 @@ export default function DashboardPage() {
 
     // WebSocket
     useEffect(() => {
-        const wsUrl = getWebSocketUrl();
-        console.log("🚀 Connection Target:", wsUrl);
-        const ws = new WebSocket(wsUrl);
+        // 1. Initialize outside the inner functions
+        let ws: WebSocket | null = null;
+        let isMounted = true;
 
-        ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
+        const connect = () => {
+            const wsUrl = getWebSocketUrl();
+            console.log("🚀 Connection Target:", wsUrl);
+            
+            // 2. Assign to the outer variable (NO 'const' here!)
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                if (!isMounted) return ws?.close();
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
+                }
+            };
+
+            ws.onmessage = (event) => {
+                if (!isMounted) return;
+                const data = JSON.parse(event.data);
+                if (data.type === 'NEW_AUCTION') {
+                    console.log("✅ New auction via WebSocket:", data.payload.title);
+                    setAuctions((prev) => [data.payload, ...prev]);
+                }
+            };
+            
+            // Optional: Add auto-reconnect logic here if you want it
+            ws.onclose = () => {
+                console.log("🔌 Dashboard WS closed");
+            };
         };
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'NEW_AUCTION') {
-                console.log("✅ New auction via WebSocket:", data.payload.title);
-                setAuctions((prev) => [data.payload, ...prev]);
-            }
-        };
+        connect();
 
         return () => {
-            // Fix for the strict mode WebSocket error
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            isMounted = false;
+            // 3. Safe cleanup using the outer variable
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
                 ws.close();
             }
         };
