@@ -51,28 +51,52 @@ export default function DashboardPage() {
     }, []);
 
     // WebSocket
+    // useEffect(() => {
+    //     const ws = new WebSocket('ws://localhost:3000/ws');
+
+    //     ws.onopen = () => {
+    //         ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
+    //     };
+
+    //     ws.onmessage = (event) => {
+    //         const data = JSON.parse(event.data);
+    //         if (data.type === 'NEW_AUCTION') {
+    //             console.log("✅ New auction via WebSocket:", data.payload.title);
+    //             setAuctions((prev) => [data.payload, ...prev]);
+    //         }
+    //     };
+
+    //     return () => {
+    //         // Fix for the strict mode WebSocket error
+    //         if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+    //             ws.close();
+    //         }
+    //     };
+    // }, []);
+
     useEffect(() => {
-        const ws = new WebSocket('ws://localhost:3000/ws');
+    const apiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3000';
+    
+    const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws';
+    const ws = new WebSocket(wsUrl);
 
-        ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
-        };
+    ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'JOIN_DASHBOARD' }));
+    };
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'NEW_AUCTION') {
-                console.log("✅ New auction via WebSocket:", data.payload.title);
-                setAuctions((prev) => [data.payload, ...prev]);
-            }
-        };
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'NEW_AUCTION') {
+            setAuctions((prev) => [data.payload, ...prev]);
+        }
+    };
 
-        return () => {
-            // Fix for the strict mode WebSocket error
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-                ws.close();
-            }
-        };
-    }, []);
+    return () => {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close();
+        }
+    };
+}, []);
 
     return (
         <div className="min-h-screen bg-[#0a0a0b] text-white selection:bg-[#867afe]/30">
