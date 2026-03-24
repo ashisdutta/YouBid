@@ -63,7 +63,7 @@ export default function AuctionDetailPage() {
 
     const connect = () => {
       const wsUrl = getWebSocketUrl();
-      const ws = new WebSocket(wsUrl);
+      ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         if (!isMounted) return ws.close();
         ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));
