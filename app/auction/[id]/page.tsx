@@ -1,5 +1,5 @@
 "use client";
-
+import { getWebSocketUrl } from "@/lib/socket";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -62,9 +62,8 @@ export default function AuctionDetailPage() {
     let isMounted = true;
 
     const connect = () => {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
-      ws = new WebSocket(wsUrl);
-
+      const wsUrl = getWebSocketUrl();
+      const ws = new WebSocket(wsUrl);
       ws.onopen = () => {
         if (!isMounted) return ws.close();
         ws.send(JSON.stringify({ type: 'JOIN_AUCTION', auctionId }));

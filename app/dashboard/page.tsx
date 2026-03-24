@@ -1,5 +1,5 @@
 "use client";
-
+import { getWebSocketUrl } from "@/lib/socket";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -52,9 +52,8 @@ export default function DashboardPage() {
 
     // WebSocket
     useEffect(() => {
-        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3000/ws';
-        console.log("🛠️ Current WS URL in Browser:", wsUrl);
-        console.log("🌍 Environment Check:", process.env.NODE_ENV);
+        const wsUrl = getWebSocketUrl();
+        console.log("🚀 Connection Target:", wsUrl);
         const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => {
