@@ -11,7 +11,6 @@ The user-facing application for the YouBid Distributed Auction System. Built wit
 * **🔐 Secure Auth Handling:** Seamlessly passes HTTP-only cookies (withCredentials) to the backend for secure, stateless authentication.
 
 ## 🛠️ Tech Stack
-
 * **Framework:** Next.js (App Router)
 * **Language:** TypeScript
 * **Styling:** Tailwind CSS
@@ -22,15 +21,13 @@ The user-facing application for the YouBid Distributed Auction System. Built wit
 Here is a look at the real-time auction interface and the responsive dashboard:
 
 ### Live Bidding Dashboard
-*(Shows the active WebSocket feed and real-time price updates)*
+
 ![Dashboard View](https://github.com/ashisdutta/distributed-auction-system/blob/054125ad4430182e553dc55a92905873a16b03b4/photos/Screenshot%202026-03-25%20at%204.33.34%E2%80%AFPM.png)
 
 ### Create Auction Modal
-*(Shows the intuitive UI for creating a new auction listing)*
+
 ![Create Auction](https://github.com/ashisdutta/distributed-auction-system/blob/054125ad4430182e553dc55a92905873a16b03b4/photos/Screenshot%202026-03-25%20at%204.03.47%E2%80%AFPM.png)
 
-## ✨ Key Frontend Features
-*(... the rest of the README continues here ...)*
 ## 📂 Project Structure
 
 ```text
